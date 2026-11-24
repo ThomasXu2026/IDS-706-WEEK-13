@@ -1,0 +1,78 @@
+== Physical Plan ==
+AdaptiveSparkPlan (14)
++- == Initial Plan ==
+   PhotonResultStage (13)
+   +- PhotonColumnarToRow (12)
+      +- PhotonTopK (11)
+         +- PhotonShuffleExchangeSource (10)
+            +- PhotonShuffleMapStage (9)
+               +- PhotonShuffleExchangeSink (8)
+                  +- PhotonTopK (7)
+                     +- PhotonGroupingAgg (6)
+                        +- PhotonShuffleExchangeSource (5)
+                           +- PhotonShuffleMapStage (4)
+                              +- PhotonShuffleExchangeSink (3)
+                                 +- PhotonGroupingAgg (2)
+                                    +- PhotonScan parquet  (1)
+
+
+(1) PhotonScan parquet 
+Output [3]: [PULocationID#10274, trip_miles#10276, base_passenger_fare#10278]
+DictionaryFilters: [(trip_miles#10276 > 0.0), (base_passenger_fare#10278 > 0.0)]
+Location: InMemoryFileIndex [dbfs:/Volumes/workspace/default/nyc_tlc/fhvhv_tripdata_2024-01.parquet, ... 2 entries]
+ReadSchema: struct<PULocationID:int,trip_miles:double,base_passenger_fare:double>
+RequiredDataFilters: [isnotnull(PULocationID#10274), isnotnull(trip_miles#10276), isnotnull(base_passenger_fare#10278), (trip_miles#10276 > 0.0), (base_passenger_fare#10278 > 0.0)]
+
+(2) PhotonGroupingAgg
+Input [3]: [PULocationID#10274, trip_miles#10276, base_passenger_fare#10278]
+Arguments: [PULocationID#10274], [partial_count(1) AS count#10628L, partial_avg(base_passenger_fare#10278) AS (sum#10631, count#10632L), partial_avg(trip_miles#10276) AS (sum#10635, count#10636L)], [count#10627L, sum#10629, count#10630L, sum#10633, count#10634L], [PULocationID#10274, count#10628L, sum#10631, count#10632L, sum#10635, count#10636L], false
+
+(3) PhotonShuffleExchangeSink
+Input [6]: [PULocationID#10274, count#10628L, sum#10631, count#10632L, sum#10635, count#10636L]
+Arguments: hashpartitioning(PULocationID#10274, 1024)
+
+(4) PhotonShuffleMapStage
+Input [6]: [PULocationID#10274, count#10628L, sum#10631, count#10632L, sum#10635, count#10636L]
+Arguments: ENSURE_REQUIREMENTS, [id=#7811]
+
+(5) PhotonShuffleExchangeSource
+Input [6]: [PULocationID#10274, count#10628L, sum#10631, count#10632L, sum#10635, count#10636L]
+Arguments: false
+
+(6) PhotonGroupingAgg
+Input [6]: [PULocationID#10274, count#10628L, sum#10631, count#10632L, sum#10635, count#10636L]
+Arguments: [PULocationID#10274], [finalmerge_count(merge count#10628L) AS count(1)#10624L, finalmerge_avg(merge sum#10631, count#10632L) AS avg(base_passenger_fare)#10625, finalmerge_avg(merge sum#10635, count#10636L) AS avg(trip_miles)#10626], [count(1)#10624L, avg(base_passenger_fare)#10625, avg(trip_miles)#10626], [PULocationID#10274, count(1)#10624L AS total_trips#10605L, round(avg(base_passenger_fare)#10625, 2) AS avg_fare#10606, round(avg(trip_miles)#10626, 2) AS avg_miles#10607], true
+
+(7) PhotonTopK
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: 10, false, false, [total_trips#10605L DESC NULLS LAST], 0
+
+(8) PhotonShuffleExchangeSink
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: SinglePartition
+
+(9) PhotonShuffleMapStage
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: ENSURE_REQUIREMENTS, [id=#7819]
+
+(10) PhotonShuffleExchangeSource
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: false
+
+(11) PhotonTopK
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: 10, false, false, [total_trips#10605L DESC NULLS LAST], 0
+
+(12) PhotonColumnarToRow
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+
+(13) PhotonResultStage
+Input [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+
+(14) AdaptiveSparkPlan
+Output [4]: [PULocationID#10274, total_trips#10605L, avg_fare#10606, avg_miles#10607]
+Arguments: isFinalPlan=false
+
+
+== Photon Explanation ==
+The query is fully supported by Photon.
